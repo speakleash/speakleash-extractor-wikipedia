@@ -130,4 +130,8 @@ dmypy.json
 
 #Misc
 backup/
-
+cache/
+*.zst
+*.json
+*.manifest
+*.bz2
