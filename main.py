@@ -149,7 +149,6 @@ total_symbols = 0
 files = get_file_url_from_page(url, ext)
 for f in files:
     if 'pages-articles-multistream' in f and 'xml-' in f:
-        #ok, file_name_bz2 = download_file(f, base_dir)
         ok = True
         file_name_bz2 = "plwiki-latest-pages-articles-multistream1.xml-p1p187037.bz2"
         if ok:
@@ -178,8 +177,8 @@ for f in files:
                 print(f'Parsed {file_name}')
 
 
-            #if os.path.exists(os.path.join(base_dir, file_name_bz2)):
-            #    os.remove(os.path.join(base_dir, file_name_bz2))
+            if os.path.exists(os.path.join(base_dir, file_name_bz2)):
+                os.remove(os.path.join(base_dir, file_name_bz2))
 
             if os.path.exists(os.path.join(base_dir, file_name)):
                 os.remove(os.path.join(base_dir, file_name))
@@ -189,11 +188,6 @@ for f in files:
         else:
             print(f'Error downloading {file_name_bz2}')
 
-
-
-#ar.add_data(txt, meta={'length': l, 'words' : words, 'verbs' : verbs, 'nouns' : nouns, 'sentences' : sentences, 'punctuations' : punctuations, 'symbols' : symbols})
- 
-print(cache_dir)
 
 for x in os.walk(cache_dir):
     for y in glob.glob(os.path.join(x[0], '*.txt')):
