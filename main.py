@@ -149,8 +149,7 @@ total_symbols = 0
 files = get_file_url_from_page(url, ext)
 for f in files:
     if 'pages-articles-multistream' in f and 'xml-' in f:
-        ok = True
-        file_name_bz2 = "plwiki-latest-pages-articles-multistream1.xml-p1p187037.bz2"
+        ok, file_name_bz2 = download_file(f, base_dir)
         if ok:
             print(f'Downloaded {file_name_bz2}')
             ok, file_name = uncompress_file(file_name_bz2, base_dir)
