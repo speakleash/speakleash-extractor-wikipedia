@@ -82,6 +82,21 @@ def read_files(dir, file_name):
 
     return text, meta
 
+def exits_files(dir, hash_name):
+    
+    dir1 = file_name[:1]
+    dir2 = file_name[:2]
+
+    new_dir = os.path.join(dir, dir1, dir2)
+
+    if not os.path.exists(new_dir):
+        return False
+
+    if os.path.exists(os.path.join  (new_dir, hash_name + '.txt')) and os.path.exists(os.path.join(new_dir, hash_name + '.meta')):
+        return True
+
+    return False
+
 def save_files(hash_name, txt, meta, dir):
 
     dir1 = hash_name[:1]
@@ -161,17 +176,18 @@ for f in files:
                         wikicode = mwparserfromhell.parse(revision.text)
                         txt = correct(wikicode.strip_code())
                         hash_name = hashlib.md5(txt.encode()).hexdigest()
-                        l = len(txt.strip())
-                        sentences, words, verbs, nouns, punctuations, symbols = get_word_stats(txt)
-                        total_words += words
-                        total_verbs += verbs
-                        total_nouns += nouns
-                        total_len += l
-                        total_docs += 1
-                        total_sentences += sentences
-                        total_punctuations += punctuations
-                        total_symbols += symbols
-                        save_files(hash_name, txt, {'title': page.title, 'length': l, 'sentences': sentences, 'words': words, 'verbs': verbs, 'nouns': nouns, 'punctuations': punctuations, 'symbols': symbols}, cache_dir)
+                        if not exits_files(cache_dir, hash_name):
+                            l = len(txt.strip())
+                            sentences, words, verbs, nouns, punctuations, symbols = get_word_stats(txt)
+                            total_words += words
+                            total_verbs += verbs
+                            total_nouns += nouns
+                            total_len += l
+                            total_docs += 1
+                            total_sentences += sentences
+                            total_punctuations += punctuations
+                            total_symbols += symbols
+                            save_files(hash_name, txt, {'title': page.title, 'length': l, 'sentences': sentences, 'words': words, 'verbs': verbs, 'nouns': nouns, 'punctuations': punctuations, 'symbols': symbols}, cache_dir)
 
                 print(f'Parsed {file_name}')
 
@@ -181,8 +197,6 @@ for f in files:
 
             if os.path.exists(os.path.join(base_dir, file_name)):
                 os.remove(os.path.join(base_dir, file_name))
-
-            break
 
         else:
             print(f'Error downloading {file_name_bz2}')
