@@ -11,7 +11,7 @@ import spacy
 import json
 import glob
 import hashlib
-
+import sys
 
 def get_file_url_from_page(url, ext='', params={}):
 
@@ -92,7 +92,7 @@ def exits_files(dir, hash_name):
     if not os.path.exists(new_dir):
         return False
 
-    if os.path.exists(os.path.join  (new_dir, hash_name + '.txt')) and os.path.exists(os.path.join(new_dir, hash_name + '.meta')):
+    if os.path.exists(os.path.join(new_dir, hash_name + '.txt')) and os.path.exists(os.path.join(new_dir, hash_name + '.meta')):
         return True
 
     return False
@@ -129,12 +129,19 @@ def get_word_stats(txt):
     doc = nlp(txt)
 
     sentences = len(list(doc.sents))
-    words = len([token.text for token in doc if not token.is_punct])
-    nouns = len([token.text for token in doc if (not token.is_stop and not token.is_punct and token.pos_ == "NOUN")])
-    verbs = len([token.text for token in doc if (not token.is_stop and not token.is_punct and token.pos_ == "VERB")])
-    punctuations = len([token.text for token in doc if (token.is_punct or token.pos_ == "PUNCT")])
-    symbols = len([token.text for token in doc if (token.pos_ == "SYM")])
 
+    for token in doc:
+        if not token.is_punct:
+            words+=1
+        if (not token.is_stop and not token.is_punct and token.pos_ == "NOUN"):
+            nouns+=1
+        if (not token.is_stop and not token.is_punct and token.pos_ == "VERB"):
+            verbs+=1
+        if (token.is_punct or token.pos_ == "PUNCT"):
+            punctuations+=1
+        if (token.is_punct or token.pos_ == "SYM"):
+            symbols+=1
+    
     return sentences, words, verbs, nouns, punctuations, symbols
 
 
@@ -161,10 +168,20 @@ total_nouns = 0
 total_punctuations = 0
 total_symbols = 0
 
+
 files = get_file_url_from_page(url, ext)
 for f in files:
     if 'pages-articles-multistream' in f and 'xml-' in f:
         ok, file_name_bz2 = download_file(f, base_dir)
+
+        if os.path.exists(os.path.join(base_dir, file_name_bz2 + '.ok')):
+            print(f'The {file_name_bz2} file was being processed')
+
+            if os.path.exists(os.path.join(base_dir, file_name_bz2)):
+                os.remove(os.path.join(base_dir, file_name_bz2))
+
+            continue
+
         if ok:
             print(f'Downloaded {file_name_bz2}')
             ok, file_name = uncompress_file(file_name_bz2, base_dir)
@@ -176,21 +193,17 @@ for f in files:
                         wikicode = mwparserfromhell.parse(revision.text)
                         txt = correct(wikicode.strip_code())
                         hash_name = hashlib.md5(txt.encode()).hexdigest()
-                        if not exits_files(cache_dir, hash_name):
-                            l = len(txt.strip())
-                            sentences, words, verbs, nouns, punctuations, symbols = get_word_stats(txt)
-                            total_words += words
-                            total_verbs += verbs
-                            total_nouns += nouns
-                            total_len += l
-                            total_docs += 1
-                            total_sentences += sentences
-                            total_punctuations += punctuations
-                            total_symbols += symbols
-                            save_files(hash_name, txt, {'title': page.title, 'length': l, 'sentences': sentences, 'words': words, 'verbs': verbs, 'nouns': nouns, 'punctuations': punctuations, 'symbols': symbols}, cache_dir)
+
+                        l = len(txt.strip())
+                        if l > 1000000:
+                            nlp.max_length = l + 100
+
+                        sentences, words, verbs, nouns, punctuations, symbols = get_word_stats(txt)
+                        save_files(hash_name, txt, {'title': page.title, 'length': l, 'sentences': sentences, 'words': words, 'verbs': verbs, 'nouns': nouns, 'punctuations': punctuations, 'symbols': symbols}, cache_dir)
 
                 print(f'Parsed {file_name}')
-
+                with open(os.path.join(base_dir, file_name_bz2 + '.ok'), 'w') as f:
+                    f.write(file_name)
 
             if os.path.exists(os.path.join(base_dir, file_name_bz2)):
                 os.remove(os.path.join(base_dir, file_name_bz2))
@@ -202,6 +215,13 @@ for f in files:
             print(f'Error downloading {file_name_bz2}')
 
 
+counter_txt = 0
+print("Files counting...")
+for x in os.walk(cache_dir):
+    for y in glob.glob(os.path.join(x[0], '*.txt')):
+        counter_txt += 1
+
+counter = 0
 for x in os.walk(cache_dir):
     for y in glob.glob(os.path.join(x[0], '*.txt')):
         file_name_txt = os.path.basename(y)
@@ -209,7 +229,18 @@ for x in os.walk(cache_dir):
         txt, meta = read_files(path_txt, file_name_txt)
         if meta.get('sentences') > 5:
             ar.add_data(txt, meta=meta)
-            print("Added " + meta.get('title'))
+            counter += 1
+
+            total_words += meta.get('words')
+            total_verbs += meta.get('verbs')
+            total_nouns += meta.get('nouns')
+            total_len += meta.get('length')
+            total_docs += 1
+            total_sentences += meta.get('sentences')
+            total_punctuations += meta.get('punctuations')
+            total_symbols += meta.get('symbols')
+
+            print("Added " + str(counter) + " z " + str(counter_txt) + ": " + meta.get('title'))
 
 ar.commit()
 
